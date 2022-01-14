@@ -1,75 +1,70 @@
-% РљРѕСЌС„С„РёС†РёРµРЅС‚С‹ РРЎР›РђРЈ
-A = [infsup(0, 2), infsup(0, 3); 1, -infsup(1, 4); infsup(1, 2), 0];
-b = [infsup(-1, 4); 0; infsup(5, 7)];
-% Р Р°СЃРїРѕР·РЅР°СЋС‰РёР№ С„СѓРЅРєС†РёРѕРЅР°Р»
-Tol = @(A,b,x) min(rad(b) - mag(mid(b) - A * x));
+addpath(genpath('./m'))
 
-[tolMax,argMax,envs,ccode] = tolsolvty(inf(A), sup(A), inf(b), sup(b));
-tolMax
-argMax
-%  Р”РѕРїСѓСЃРєРѕРІРѕРµ РјРЅРѕР¶РµСЃС‚РІРѕ СЂРµС€РµРЅРёР№ РёРЅС‚РµСЂРІР°Р»СЊРЅРѕР№ Р»РёРЅРµР№РЅРѕР№ СЃРёСЃС‚РµРјС‹ РїСѓСЃС‚Рѕ 
+x = [4; 10; 12];       
+y = [34; 54; 74];        
 
 
-n = 100;
-levels = 30;
-drawContour(A,b,n,levels)
+epsilon = [8; 9; 11]; 
 
-%% РљРѕСЂСЂРµРєС†РёСЏ РІРµРєС‚РѕСЂР° b
-e = [infsup(-1, 1); infsup(-1, 1); infsup(-1, 1)];
-C = 1.5 * abs(tolMax);
-b1 = b + C * e;
-b1
-drawContour(A,b1,n,levels)
+X = [ x.^0 x ];                               
+lb = [-inf 0];                                
+irp_steam = ir_problem(X, y, epsilon, lb);
 
-[tolMax1,argMax1,~,~] = tolsolvty(inf(A), sup(A), inf(b1), sup(b1));
-tolMax1
-argMax1
-ive1 = ive(A, b1);
-rve1 = rve(A, tolMax1);
-iveBox = [midrad(argMax1(1), ive1);midrad(argMax1(2), ive1)];
-rveBox = [midrad(argMax1(1), rve1);midrad(argMax1(2), rve1)];
-plotintval([iveBox, rveBox], 'n');
-
-%% РљРѕСЂСЂРµРєС†РёСЏ РјР°С‚СЂРёС†С‹ Рђ
-koef = 1.5;
-b2 = [infsup(-1, 4); infsup(-2, 2); infsup(2, 7)];
-[tolMax2,argMax2,~,~] = tolsolvty(inf(A), sup(A), inf(b2), sup(b2));
-E = 1 * [argMax2(1) * 0.25 argMax2(2);0 argMax2(2);argMax2(1) * 0.25 0];
-A1 = infsup(inf(A) + E, sup(A) - E);
-A1
-drawContour(A1,b2,n,levels);
-
-[tolMax2,argMax2,~,~] = tolsolvty(inf(A1), sup(A1), inf(b2), sup(b2));
-tolMax2
-argMax2
-ive2 = ive(A1, b2);
-rve2 = rve(A1, tolMax2);
-iveBox2 = [midrad(argMax2(1), ive2);midrad(argMax2(2), ive2)];
-rveBox2 = [midrad(argMax2(1), rve2);midrad(argMax2(2), rve2)];
-plotintval([iveBox2, rveBox2], 'n');
-
-
-%% РџРѕР»РѕР¶РµРЅРёРµ РјР°РєСЃРёРјСѓРјР° Tol
-iterations = 10;
 figure
-A2 = A;
-for i = 1:iterations
-    A2 = A2 ./ 2;
-    [~,argMax,~,~] = tolsolvty(inf(A2), sup(A2), inf(b), sup(b));
-    plot(argMax(1), argMax(2), '*b');
-    hold on
-end
+ir_plotbeta(irp_steam)
 grid on
+set(gca, 'fontsize', 12)
+xlabel('\beta_1')
+ylabel('\beta_2')
 
-%РџРѕР»РѕР¶РµРЅРёРµ РјР°РєСЃРёРјСѓРјРѕРІ Tol
-A2 = A;
-line1 = [1, 1; 0, 0; 0, 0]
-line2 = [0, 0; 1, 1; 0, 0]
-line3 = [0, 0; 0, 0; 1, 1]
-figure
-drawTolMax(A2, b, line1, iterations)
-figure
-drawTolMax(A2, b, line2, iterations)
-figure
-drawTolMax(A2, b, line3, iterations)
+## Внешние интервальние оценки параметров модели y = beta1 + beta2 * x 
+b_int = ir_outer(irp_steam)
 
+## Вершины информационного множества задачи построения интервальной регрессии
+vertices = ir_beta2poly(irp_steam)
+
+## Диаметр и наиболее удаленные вершины информационного множества 
+[rhoB, b1, b2] = ir_betadiam(irp_steam)
+
+## Внешние интервальние оценки параметров модели y = beta1 + beta2 * x 
+b_int = ir_outer(irp_steam)
+
+## Точечные оценки параметров 
+b_maxdiag = (b1 + b2) / 2    # как середина наибольшей диагонали информационного множества
+b_maxdiag
+b_gravity = mean(vertices)   # как центр тяжести информационного множества 
+b_gravity
+b_lsm = (X \ y)'             # методом наименьших квадратов
+b_lsm
+
+plot(b_maxdiag(1), b_maxdiag(2), ';max. diagonals center;mo')
+plot(b_gravity(1), b_gravity(2), ';gravity center;k+')
+plot(b_lsm(1), b_lsm(2), ';LS;rx')
+legend()
+
+figure 
+xlimits = [0 25];
+ir_plotmodelset(irp_steam, xlimits)     # коридор совместных зависимостей
+hold on
+ir_scatter(irp_steam,'b.')              # интервальные измерения
+
+grid on
+set(gca, 'fontsize', 12)
+xlabel('x')
+ylabel('y')
+
+figure 
+x_p = [3;6; 9; 15; 22];
+ir_plotmodelset(irp_steam, xlimits)
+hold on
+ir_scatter(irp_steam,'b.')
+hold on 
+X_p = [x_p.^0 x_p];
+y_p = ir_predict(irp_steam, X_p);
+y_p
+ypmid = mean(y_p,2);
+yprad = 0.5 * (y_p(:,2) - y_p(:,1));
+ir_scatter(ir_problem(X_p,ypmid,yprad),'k.');
+grid on
+xlabel('x')
+ylabel('y')
